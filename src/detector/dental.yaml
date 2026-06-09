@@ -1,0 +1,37 @@
+# OralGuard — YOLO Dataset Configuration
+# Dataset: DENTEX Challenge 2023 (MICCAI)
+# Task: Instance Segmentation of dental pathologies on panoramic X-rays
+
+# Root path (relative to where YOLO is invoked, or set absolute path)
+path: ../../../data/dentex
+
+# Relative paths to splits (under 'path')
+train: images/train
+val:   images/val
+test:  images/test
+
+# Number of classes
+nc: 4
+
+# Class names (FDI-aligned dental pathology labels)
+names:
+  0: caries
+  1: deep_caries
+  2: periapical_lesion
+  3: impacted_tooth
+
+# Dataset description
+description: >
+  DENTEX Challenge 2023 — Dental Enumeration and Diagnosis on Panoramic X-Rays.
+  Annotated with bounding boxes and instance segmentation masks.
+  Sourced from MICCAI 2023. Labels converted to YOLO format.
+
+# Expected folder structure under data/dentex/:
+#   images/
+#     train/   *.png / *.jpg
+#     val/     *.png / *.jpg
+#     test/    *.png / *.jpg
+#   labels/
+#     train/   *.txt  (YOLO format: class cx cy w h [segmentation polygon])
+#     val/     *.txt
+#     test/    *.txt

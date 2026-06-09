@@ -1,0 +1,58 @@
+name: OralGuard CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Tests — Python 3.10
+    runs-on: ubuntu-latest
+
+    steps:
+      # ---- Checkout ----
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ---- Python setup ----
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      # ---- Install dependencies ----
+      - name: Install CPU-only PyTorch (CI environment)
+        run: |
+          pip install --upgrade pip
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install project dependencies
+        run: |
+          pip install ultralytics kaggle fastapi uvicorn mlflow grad-cam \
+                      numpy pandas matplotlib opencv-python scikit-learn \
+                      pillow tqdm pytest albumentations
+
+      # ---- Lint (optional) ----
+      - name: Check syntax (compile all Python files)
+        run: |
+          python -m compileall src/ api/ tests/ -q
+
+      # ---- Run tests ----
+      - name: Run pytest
+        run: |
+          pytest tests/ -v --tb=short --no-header
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      # ---- Report ----
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: |
+            .pytest_cache/
+          retention-days: 7
