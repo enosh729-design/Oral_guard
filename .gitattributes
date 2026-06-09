@@ -1,0 +1,21 @@
+# OralGuard — Git line ending normalisation
+* text=auto
+
+# Python
+*.py    text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.json  text eol=lf
+
+# Docker
+Dockerfile text eol=lf
+
+# Binary
+*.pt    binary
+*.pth   binary
+*.zip   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
