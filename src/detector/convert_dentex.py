@@ -129,36 +129,80 @@ def convert_split(json_path: Path, src_img_dir: Path,
 
 def main():
     import random
-    logger.info("=== OralGuard — DENTEX COCO→YOLO Conversion ===")
+    import shutil
+    logger.info("=== OralGuard — DENTEX COCO→YOLO Conversion (v2) ===")
 
-    # --- Training split ---
-    n_train = convert_split(
-        TRAIN_JSON, TRAIN_IMGS, YOLO_TRAIN_IMGS, YOLO_TRAIN_LABELS
-    )
+    with open(TRAIN_JSON) as f:
+        coco = json.load(f)
 
-    # --- Val JSON (use train JSON val images or copy val images with empty labels) ---
-    # DENTEX validation set has no public labels — copy images with empty label files
-    val_imgs = sorted(VAL_IMGS.glob("*.png")) + sorted(VAL_IMGS.glob("*.jpg"))
+    id_to_image = {img["id"]: img for img in coco.get("images", [])}
+    annotations_by_image: dict[int, list] = {}
+    for ann in coco.get("annotations", []):
+        annotations_by_image.setdefault(ann["image_id"], []).append(ann)
+
+    # ── DENTEX disease field is category_id_3 ──────────────────────────────
+    # categories_3: {0:Impacted, 1:Caries, 2:Periapical Lesion, 3:Deep Caries}
+    # OralGuard order: caries(0), deep_caries(1), periapical(2), impacted(3)
+    DISEASE_MAP = {1: 0, 3: 1, 2: 2, 0: 3}
+
+    all_ids = list(id_to_image.keys())
+    # ── Keep only images that have ≥1 annotation (skip pure backgrounds) ──
+    all_ids = [img_id for img_id in all_ids if img_id in annotations_by_image]
+    logger.info(f"Images with annotations: {len(all_ids)} / {len(id_to_image)}")
     random.seed(42)
-    random.shuffle(val_imgs)
-    mid = len(val_imgs) // 2
+    random.shuffle(all_ids)
 
-    for i, img_path in enumerate(val_imgs):
-        dst_dir = YOLO_VAL_IMGS if i < mid else YOLO_TEST_IMGS
-        lbl_dir = YOLO_VAL_LABELS if i < mid else YOLO_TEST_LABELS
-        dst_dir.mkdir(parents=True, exist_ok=True)
+    # 80% train / 15% val / 5% test  — all with real labels
+    n_total = len(all_ids)
+    n_train = int(n_total * 0.80)
+    n_val   = int(n_total * 0.15)
+
+    train_ids = all_ids[:n_train]
+    val_ids   = all_ids[n_train:n_train + n_val]
+    test_ids  = all_ids[n_train + n_val:]
+
+    logger.info(f"Split: {len(train_ids)} train / {len(val_ids)} val / {len(test_ids)} test")
+
+    def write_split(ids, img_dir, lbl_dir):
+        img_dir.mkdir(parents=True, exist_ok=True)
         lbl_dir.mkdir(parents=True, exist_ok=True)
-        dst = dst_dir / img_path.name
-        if not dst.exists():
-            shutil.copy2(img_path, dst)
-        lbl = lbl_dir / (img_path.stem + ".txt")
-        if not lbl.exists():
-            lbl.write_text("")   # empty = no annotations (unlabelled val)
+        for img_id in ids:
+            img_info  = id_to_image[img_id]
+            file_name = img_info["file_name"]
+            img_w, img_h = img_info["width"], img_info["height"]
 
-    logger.info(f"Val  images copied: {mid}")
-    logger.info(f"Test images copied: {len(val_imgs) - mid}")
-    logger.info(f"Training images   : {n_train}")
-    logger.info("Conversion complete. Run yolo_trainer.py to begin training.")
+            src = TRAIN_IMGS / file_name
+            dst = img_dir / file_name
+            if src.exists() and not dst.exists():
+                shutil.copy2(src, dst)
+
+            anns = annotations_by_image.get(img_id, [])
+            lines = []
+            for ann in anns:
+                cat_id   = ann.get("category_id_3", 1)   # ← correct field
+                yolo_cls = DISEASE_MAP.get(cat_id, 0)
+                x, y, w, h = ann.get("bbox", [0, 0, 1, 1])
+                cx = (x + w / 2) / img_w
+                cy = (y + h / 2) / img_h
+                nw = w / img_w
+                nh = h / img_h
+                lines.append(f"{yolo_cls} {cx:.6f} {cy:.6f} {nw:.6f} {nh:.6f}")
+
+            lbl_file = lbl_dir / (Path(file_name).stem + ".txt")
+            lbl_file.write_text("\n".join(lines))
+
+    # Clear old splits
+    for d in [YOLO_TRAIN_IMGS, YOLO_VAL_IMGS, YOLO_TEST_IMGS,
+              YOLO_TRAIN_LABELS, YOLO_VAL_LABELS, YOLO_TEST_LABELS]:
+        if d.exists():
+            shutil.rmtree(d)
+
+    write_split(train_ids, YOLO_TRAIN_IMGS, YOLO_TRAIN_LABELS)
+    write_split(val_ids,   YOLO_VAL_IMGS,   YOLO_VAL_LABELS)
+    write_split(test_ids,  YOLO_TEST_IMGS,  YOLO_TEST_LABELS)
+
+    logger.info("Conversion complete with proper train/val/test splits.")
+    logger.info("Next: python src/detector/yolo_trainer.py")
 
 
 if __name__ == "__main__":

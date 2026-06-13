@@ -45,7 +45,7 @@ from src.explainability.gradcam import generate_gradcam
 # ---------------------------------------------------------------------------
 
 ROOT = Path(__file__).resolve().parent.parent
-YOLO_WEIGHTS   = ROOT / "src" / "detector" / "weights" / "oralguard_seg" / "weights" / "best.pt"
+YOLO_WEIGHTS   = ROOT / "src" / "detector" / "weights" / "oralguard_det" / "weights" / "best.pt"
 CLASSIFIER_WEIGHTS = ROOT / "src" / "classifier" / "checkpoints" / "best.pt"
 OUTPUT_DIR     = ROOT / "outputs" / "gradcam"
 CONF_THRESHOLD = 0.25

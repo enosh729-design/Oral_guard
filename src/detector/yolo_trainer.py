@@ -8,9 +8,16 @@ import sys
 import logging
 from pathlib import Path
 
+# Switch MLflow to SQLite backend (file store deprecated in latest MLflow)
+os.environ.setdefault("MLFLOW_TRACKING_URI", "sqlite:///mlflow/mlflow.db")
+os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+
 import mlflow
 import mlflow.pytorch
-from ultralytics import YOLO
+from ultralytics import YOLO, settings
+
+# Disable built-in MLflow callbacks to avoid duplicate runs and callback crashes
+settings.update({"mlflow": False})
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -39,7 +46,8 @@ logger = logging.getLogger(__name__)
 # Training configuration
 # ---------------------------------------------------------------------------
 TRAIN_CFG = dict(
-    model="yolov8m-seg.pt",
+    model="yolov8m.pt",           # detection model — works with 5-col bbox labels
+    task="detect",
     data=str(DATASET_YAML),
     imgsz=1024,
     epochs=50,
@@ -49,7 +57,7 @@ TRAIN_CFG = dict(
     patience=15,              # early stopping patience
     save=True,
     project=str(WEIGHTS_DIR),
-    name="oralguard_seg",
+    name="oralguard_det",
     exist_ok=True,
     pretrained=True,
     optimizer="AdamW",
@@ -65,7 +73,7 @@ TRAIN_CFG = dict(
     dfl=1.5,
     pose=12.0,
     kobj=1.0,
-    label_smoothing=0.0,
+    # label_smoothing removed — deprecated in ultralytics 8.4.62+
     nbs=64,
     hsv_h=0.015,
     hsv_s=0.7,
@@ -122,7 +130,10 @@ def train(cfg: dict = None) -> str:
     logger.info(f"Device   : cuda:{config['device']}")
     logger.info(f"Output   : {config['project']}/{config['name']}")
 
-    # MLflow tracking
+    # MLflow tracking — SQLite backend
+    db_path = ROOT / "mlflow" / "mlflow.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    mlflow.set_tracking_uri(f"sqlite:///{db_path}")
     mlflow.set_experiment("oralguard-detector")
     with mlflow.start_run(run_name="yolov8m-seg-dental"):
         mlflow.log_params({k: v for k, v in config.items()
@@ -135,7 +146,6 @@ def train(cfg: dict = None) -> str:
         # Derive best weights path
         run_dir = Path(config["project"]) / config["name"]
         best_weights = run_dir / "weights" / "best.pt"
-
         if best_weights.exists():
             logger.info(f"✅ Best weights saved at: {best_weights}")
             mlflow.log_artifact(str(best_weights), artifact_path="weights")
@@ -143,10 +153,13 @@ def train(cfg: dict = None) -> str:
             logger.warning("best.pt not found — check training output directory.")
 
         # Log final metrics
+        import re
         if hasattr(results, "results_dict"):
             for k, v in results.results_dict.items():
                 if isinstance(v, (int, float)):
-                    mlflow.log_metric(k.replace("/", "_"), v)
+                    # Sanitize metric name for MLflow (alphanumeric, dash, dot, space, underscore)
+                    clean_k = re.sub(r'[^\w\-\. ]', '_', k)
+                    mlflow.log_metric(clean_k, v)
 
         return str(best_weights)
 

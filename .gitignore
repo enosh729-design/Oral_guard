@@ -8,3 +8,8 @@ mlflow/
 outputs/
 *.pt
 *.pth
+mlflow.db
+mlruns/
+*.log
+runs/
+src/detector/weights/

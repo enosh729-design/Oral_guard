@@ -17,7 +17,7 @@
 #   labels/train/  labels/val/  labels/test/
 
 # Root path
-path: ../../../data/dentex
+path: C:/Users/enosh/oralguard/data/dentex
 
 # Relative paths to splits (populated by convert_dentex.py)
 train: images/train

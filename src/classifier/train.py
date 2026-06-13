@@ -32,6 +32,11 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 CHECKPOINTS_DIR = ROOT / "src" / "classifier" / "checkpoints"
 CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
 
+# MLflow: use SQLite backend (file store deprecated in latest MLflow)
+_DB_PATH = ROOT / "mlflow" / "mlflow.db"
+_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MLFLOW_TRACKING_URI", f"sqlite:///{_DB_PATH}")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -162,10 +167,13 @@ def train(
     criterion = nn.BCELoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=5, verbose=True
+        optimizer, mode="min", factor=0.5, patience=5
     )
 
     # ---- MLflow ----
+    db_path = ROOT / "mlflow" / "mlflow.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    mlflow.set_tracking_uri(f"sqlite:///{db_path}")
     mlflow.set_experiment(experiment_name)
     run_name = run_name or f"resnet50-bce-{time.strftime('%Y%m%d-%H%M%S')}"
 
