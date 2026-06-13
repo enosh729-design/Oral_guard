@@ -21,7 +21,7 @@
 
 ```mermaid
 flowchart TD
-    A[🦷 OPG / Panoramic X-Ray Input] --> B[YOLOv8m-seg\nInstance Segmentation\n1024px · GPU]
+    A[🦷 OPG / Panoramic X-Ray Input] --> B[YOLOv8m\nObject Detection\n1024px · GPU]
     B --> C{Detected Teeth}
     C -->|Per tooth bbox| D[FDI Mapper\nQuadrant + Position\n→ FDI Number]
     C -->|Per tooth crop| E[128×128 Patch\nPreprocessing]
@@ -65,7 +65,7 @@ https://arxiv.org/abs/2305.11106
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| **Detection** | YOLOv8m-seg (Ultralytics) | 8.4.62 |
+| **Detection** | YOLOv8m (Ultralytics) | 8.4.62 |
 | **Classification** | ResNet50 (PyTorch) | 2.12.0 |
 | **Uncertainty** | Monte Carlo Dropout | — |
 | **Explainability** | GradCAM++ (pytorch-grad-cam) | 1.5.5 |
@@ -232,15 +232,26 @@ for tooth in result["findings"]:
 
 ## Results
 
-> 🚧 **Placeholder — to be updated after training completes**
+Model training and validation are completed. Below are the final evaluation metrics on the test splits.
 
-| Metric | Detector (YOLO) | Classifier (ResNet50) |
-|--------|----------------|-----------------------|
-| mAP@50 | — | — |
-| mAP@50-95 | — | — |
-| Val F1 (macro) | — | — |
-| Uncertainty calibration (ECE) | — | — |
-| Inference time (RTX 4060) | — | — |
+### Overall Model Performance
+
+| Metric | Detector (YOLOv8m) | Classifier (ResNet50) |
+|--------|--------------------|-----------------------|
+| **mAP@50** | 0.548 | — |
+| **mAP@50-95** | 0.362 | — |
+| **Val Loss** | — | 0.2682 (Best) / 0.4426 (Final) |
+| **Val F1 (macro)** | — | 0.6076 |
+
+### Detector Per-Class Performance (Test Split)
+
+| Class | Precision | Recall | mAP@50 | mAP@50-95 |
+|-------|-----------|--------|--------|-----------|
+| **Caries** | 0.513 | 0.578 | 0.544 | 0.384 |
+| **Deep Caries** | 0.379 | 0.346 | 0.431 | 0.297 |
+| **Periapical Lesion** | 0.528 | 0.250 | 0.263 | 0.151 |
+| **Impacted Tooth** | 0.890 | 0.870 | 0.955 | 0.618 |
+| **All Classes** | 0.578 | 0.511 | 0.548 | 0.362 |
 
 ---
 

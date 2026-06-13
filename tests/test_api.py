@@ -11,7 +11,7 @@ import requests
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-TEST_IMAGE = ROOT / "data" / "dentex" / "images" / "test" / "train_130.png"
+TEST_IMAGE = ROOT / "data" / "dentex" / "images" / "test" / "train_149.png"
 PORT = 8011  # Avoid port conflicts
 
 def run_test():
