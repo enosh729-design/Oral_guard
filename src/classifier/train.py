@@ -56,21 +56,22 @@ class ToothPatchDataset(Dataset):
         image_path, caries, deep_caries, periapical_lesion, impacted_tooth
     """
 
-    TRAIN_TRANSFORMS = transforms.Compose([
-        transforms.Resize((INPUT_SIZE, INPUT_SIZE)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomRotation(degrees=15),
-        transforms.ColorJitter(brightness=0.3, contrast=0.3),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
+    import albumentations as A
+    from albumentations.pytorch import ToTensorV2
+
+    TRAIN_TRANSFORMS = A.Compose([
+        A.Resize(INPUT_SIZE, INPUT_SIZE),
+        A.HorizontalFlip(p=0.5),
+        A.RandomBrightnessContrast(p=0.5),
+        A.Rotate(limit=10, p=0.5),  # slight rotation (+-10 degrees)
+        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+        ToTensorV2(),
     ])
 
-    VAL_TRANSFORMS = transforms.Compose([
-        transforms.Resize((INPUT_SIZE, INPUT_SIZE)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
+    VAL_TRANSFORMS = A.Compose([
+        A.Resize(INPUT_SIZE, INPUT_SIZE),
+        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+        ToTensorV2(),
     ])
 
     def __init__(self, csv_path: str, transform=None) -> None:
@@ -93,7 +94,9 @@ class ToothPatchDataset(Dataset):
         img_path, labels = self.samples[idx]
         image = Image.open(img_path).convert("RGB")
         if self.transform:
-            image = self.transform(image)
+            image_np = np.array(image)
+            augmented = self.transform(image=image_np)
+            image = augmented["image"]
         return image, torch.tensor(labels, dtype=torch.float32)
 
 
@@ -116,7 +119,7 @@ def train(
     epochs: int = 100,
     batch_size: int = 32,
     lr: float = 1e-4,
-    patience: int = 10,
+    patience: int = 15,
     val_split: float = 0.2,
     dropout_p: float = 0.4,
     experiment_name: str = "oralguard-classifier",
@@ -154,18 +157,38 @@ def train(
     val_ds.dataset.transform = ToothPatchDataset.VAL_TRANSFORMS
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
-                              num_workers=4, pin_memory=True)
+                              num_workers=0, pin_memory=True)
     val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False,
-                              num_workers=4, pin_memory=True)
+                              num_workers=0, pin_memory=True)
 
     logger.info(f"Dataset  : {len(train_ds)} train / {len(val_ds)} val samples")
 
     # ---- Model ----
     model = get_model(dropout_p=dropout_p, pretrained=True).to(device)
 
+    # Freeze all layers except layer4 (features.7) and fc head
+    for name, param in model.named_parameters():
+        if "features.7" in name or "fc" in name:
+            param.requires_grad = True
+        else:
+            param.requires_grad = False
+
+    # Log trainable parameters
+    trainable_params = [name for name, p in model.named_parameters() if p.requires_grad]
+    logger.info(f"Trainable parameters ({len(trainable_params)}): {trainable_params}")
+
     # ---- Loss / Optimizer / Scheduler ----
     criterion = nn.BCELoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    
+    # Configure parameter groups with separate learning rates
+    params_layer4 = [p for name, p in model.named_parameters() if "features.7" in name and p.requires_grad]
+    params_fc = [p for name, p in model.named_parameters() if "fc" in name and p.requires_grad]
+    
+    optimizer = torch.optim.AdamW([
+        {"params": params_layer4, "lr": 1e-5},
+        {"params": params_fc, "lr": 1e-4}
+    ], weight_decay=1e-4)
+
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=5
     )
@@ -231,7 +254,7 @@ def train(
 
             # ---- LR scheduler step ----
             scheduler.step(val_loss)
-            current_lr = optimizer.param_groups[0]["lr"]
+            current_lr = optimizer.param_groups[1]["lr"]  # report classification head lr
 
             # ---- Logging ----
             logger.info(
@@ -283,7 +306,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs",   type=int, default=100)
     parser.add_argument("--batch",    type=int, default=32)
     parser.add_argument("--lr",       type=float, default=1e-4)
-    parser.add_argument("--patience", type=int, default=10)
+    parser.add_argument("--patience", type=int, default=15)
     args = parser.parse_args()
 
     best = train(

@@ -83,7 +83,7 @@ def run_test():
         print(f"Teeth Det  : {res.get('num_teeth_detected')}")
         print(f"Time Taken : {res.get('processing_time_ms')} ms")
         print("\nFirst 3 findings (if any):")
-        for finding in res.get("findings", [])[:3]:
+        for finding in res.get("findings", []):
             print(f"  Tooth {finding.get('tooth_id')} ({finding.get('tooth_label')}):")
             print(f"    Findings   : {finding.get('findings')}")
             print(f"    Uncertain  : {finding.get('uncertain')}")
