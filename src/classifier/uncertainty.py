@@ -60,7 +60,8 @@ def mc_uncertainty(
         # Collect T stochastic predictions
         stochastic_preds = []
         for _ in range(T):
-            preds = model(image_tensor)   # (B, num_classes)
+            logits = model(image_tensor)   # (B, num_classes)
+            preds = torch.sigmoid(logits)
             stochastic_preds.append(preds.unsqueeze(0))   # (1, B, num_classes)
 
         # Stack → (T, B, num_classes)
@@ -85,21 +86,24 @@ def mc_uncertainty(
 
 def is_uncertain(
     entropy: torch.Tensor | float,
-    threshold: float = 0.5,
+    threshold: float = 1.5,
 ) -> bool | list[bool]:
+    # Threshold calibrated for 4-class multi-label BCE. 
+    # Max possible entropy = 4 * ln(2) ≈ 2.77. 
+    # 1.5 flags predictions where average class confidence is genuinely low.
     """
     Determine whether a prediction is uncertain based on entropy threshold.
 
     Args:
         entropy:   Scalar entropy value or tensor of shape (B,).
         threshold: Entropy threshold above which a prediction is uncertain.
-                   Default 0.5 (tuned for 4-class binary entropy range [0, 2.77]).
+                   Default 1.5 (tuned for 4-class binary entropy range [0, 2.77]).
 
     Returns:
         Single bool (if scalar/0-d tensor) or list of bools (if batch tensor).
 
     Example:
-        >>> flag = is_uncertain(0.8, threshold=0.5)
+        >>> flag = is_uncertain(1.8, threshold=1.5)
         >>> assert flag is True
     """
     if isinstance(entropy, (int, float)):
@@ -140,7 +144,9 @@ def mc_variance(
     with torch.no_grad():
         preds_list = []
         for _ in range(T):
-            preds_list.append(model(image_tensor).unsqueeze(0))
+            logits = model(image_tensor)
+            probs = torch.sigmoid(logits)
+            preds_list.append(probs.unsqueeze(0))
 
         stacked = torch.cat(preds_list, dim=0)   # (T, B, num_classes)
 

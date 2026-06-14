@@ -96,12 +96,12 @@ class OralGuardClassifier(nn.Module):
         # Classification
         logits = self.fc(features)           # (B, num_classes)
 
-        # Sigmoid for multi-label (not mutually exclusive)
-        return torch.sigmoid(logits)         # (B, num_classes)
+        # Return raw logits (sigmoid is handled by loss function / manually at inference)
+        return logits                        # (B, num_classes)
 
     def predict_proba(self, x: torch.Tensor) -> torch.Tensor:
-        """Alias for forward(); returns class probabilities."""
-        return self.forward(x)
+        """Apply sigmoid to raw logits to return class probabilities."""
+        return torch.sigmoid(self.forward(x))
 
     def extra_repr(self) -> str:
         return (
@@ -171,7 +171,8 @@ if __name__ == "__main__":
     model.eval()   # Note: dropout stays active — this is intentional
 
     dummy = torch.randn(4, 3, INPUT_SIZE, INPUT_SIZE, device=device)
-    out = model(dummy)
+    out_logits = model(dummy)
+    out = torch.sigmoid(out_logits)
 
     print(f"Input  shape : {dummy.shape}")
     print(f"Output shape : {out.shape}")

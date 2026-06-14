@@ -50,7 +50,7 @@ CLASSIFIER_WEIGHTS = ROOT / "src" / "classifier" / "checkpoints" / "best.pt"
 OUTPUT_DIR     = ROOT / "outputs" / "gradcam"
 CONF_THRESHOLD = 0.25
 MC_T           = 30
-UNCERTAINTY_THRESHOLD = 0.5
+UNCERTAINTY_THRESHOLD = 1.5
 INPUT_SIZE     = 128
 
 # Device

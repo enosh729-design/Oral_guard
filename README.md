@@ -240,8 +240,8 @@ Model training and validation are completed. Below are the final evaluation metr
 |--------|--------------------|-----------------------|
 | **mAP@50** | 0.548 | — |
 | **mAP@50-95** | 0.362 | — |
-| **Val Loss** | — | 0.2990 (Best) / 0.3251 (Final) |
-| **Val F1 (macro)** | — | 0.4416 |
+| **Val Loss** | — | 0.6546 (Best) / 0.8345 (Final) |
+| **Val F1 (macro)** | — | 0.5641 |
 
 ### Detector Per-Class Performance (Test Split)
 

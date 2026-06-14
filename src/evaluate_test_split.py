@@ -32,7 +32,7 @@ CSV_OUT = ROOT / "outputs" / "test_evaluation_results.csv"
 CONF_THRESHOLD = 0.25
 IOU_THRESHOLD = 0.45
 MC_T = 30
-UNCERTAINTY_THRESHOLD = 0.5
+UNCERTAINTY_THRESHOLD = 1.5
 INPUT_SIZE = 128
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

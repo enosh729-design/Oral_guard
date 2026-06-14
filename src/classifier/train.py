@@ -178,7 +178,8 @@ def train(
     logger.info(f"Trainable parameters ({len(trainable_params)}): {trainable_params}")
 
     # ---- Loss / Optimizer / Scheduler ----
-    criterion = nn.BCELoss()
+    pos_weight = torch.tensor([0.63, 4.95, 21.3, 4.80]).to(device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     
     # Configure parameter groups with separate learning rates
     params_layer4 = [p for name, p in model.named_parameters() if "features.7" in name and p.requires_grad]
@@ -244,7 +245,7 @@ def train(
                     preds = model(images)
                     loss = criterion(preds, labels)
                     val_losses.append(loss.item())
-                    all_preds.append(preds.cpu().numpy())
+                    all_preds.append(torch.sigmoid(preds).cpu().numpy())
                     all_targets.append(labels.cpu().numpy())
 
             val_loss = float(np.mean(val_losses))
