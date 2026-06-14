@@ -50,8 +50,15 @@ CLASSIFIER_WEIGHTS = ROOT / "src" / "classifier" / "checkpoints" / "best.pt"
 OUTPUT_DIR     = ROOT / "outputs" / "gradcam"
 CONF_THRESHOLD = 0.25
 MC_T           = 30
-UNCERTAINTY_THRESHOLD = 1.5
+UNCERTAINTY_THRESHOLD = 2.0
 INPUT_SIZE     = 128
+
+CLASS_THRESHOLDS = {
+    'caries': 0.50,
+    'deep_caries': 0.40,
+    'periapical_lesion': 0.30,
+    'impacted_tooth': 0.35
+}
 
 # Device
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -287,8 +294,11 @@ async def predict(file: UploadFile = File(...)):
         ent_val    = entropy[0].item()
         uncertain  = bool(is_uncertain(ent_val, threshold=UNCERTAINTY_THRESHOLD))
 
-        # Detected findings (probability > 0.5)
-        detected = [CLASS_NAMES[j] for j, p in enumerate(probs) if p >= 0.5]
+        # Detected findings (class-specific thresholds)
+        detected = [
+            CLASS_NAMES[j] for j, p in enumerate(probs)
+            if p >= CLASS_THRESHOLDS[CLASS_NAMES[j]]
+        ]
 
         # GradCAM (only for uncertain or positive predictions)
         gradcam_path: Optional[str] = None
