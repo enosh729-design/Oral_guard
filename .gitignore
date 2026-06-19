@@ -13,3 +13,5 @@ mlruns/
 *.log
 runs/
 src/detector/weights/
+.streamlit/
+*.pdf
