@@ -77,7 +77,7 @@ def load_models():
     with st.spinner("Loading OralGuard models from HuggingFace Hub..."):
         yolo_path = hf_hub_download(
             repo_id="Enosh729/oralguard",
-            filename="oralguard_det_v3.pt"
+            filename="oralguard_det_v2.pt"
         )
         clf_path = hf_hub_download(
             repo_id="Enosh729/oralguard",
@@ -366,7 +366,7 @@ def generate_pdf_report(findings, annotated_img, filename, elapsed):
         ["Report Generated", timestamp,  "File Analysed",   filename],
         ["Teeth Detected",   str(n_teeth), "Analysis Time", f"{elapsed:.1f} seconds"],
         ["Teeth with Findings", str(n_findings), "Uncertain Flags", str(n_uncertain)],
-        ["Model (Detector)", "YOLOv8m  mAP@50: 0.419",
+        ["Model (Detector)", "YOLOv8m  mAP@50: 0.701",
          "Model (Classifier)", "ResNet50  F1: 0.736"],
     ]
 
@@ -706,7 +706,7 @@ with col2:
             # ── About this analysis (collapsed) ──────
             with st.expander("ℹ️ About this analysis", expanded=False):
                 st.markdown(
-                    "**Model Architecture:** YOLOv8m (tooth detection, mAP@50 0.419) "
+                    "**Model Architecture:** YOLOv8m (tooth detection, mAP@50 0.701) "
                     "+ ResNet50 (multi-label classification, F1 0.736)"
                 )
                 st.markdown(
