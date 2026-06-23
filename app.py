@@ -77,11 +77,11 @@ def load_models():
     with st.spinner("Loading OralGuard models from HuggingFace Hub..."):
         yolo_path = hf_hub_download(
             repo_id="Enosh729/oralguard",
-            filename="oralguard_det_v2.pt"
+            filename="oralguard_det_v3.pt"
         )
         clf_path = hf_hub_download(
             repo_id="Enosh729/oralguard",
-            filename="classifier_v2.pt"
+            filename="classifier_v3.pt"
         )
 
     yolo = YOLO(yolo_path)
@@ -366,8 +366,8 @@ def generate_pdf_report(findings, annotated_img, filename, elapsed):
         ["Report Generated", timestamp,  "File Analysed",   filename],
         ["Teeth Detected",   str(n_teeth), "Analysis Time", f"{elapsed:.1f} seconds"],
         ["Teeth with Findings", str(n_findings), "Uncertain Flags", str(n_uncertain)],
-        ["Model (Detector)", "YOLOv8m  mAP@50: 0.548",
-         "Model (Classifier)", "ResNet50  F1: 0.564"],
+        ["Model (Detector)", "YOLOv8m  mAP@50: 0.419",
+         "Model (Classifier)", "ResNet50  F1: 0.736"],
     ]
 
     meta_col_styles = [PAGE_W*0.22, PAGE_W*0.28, PAGE_W*0.22, PAGE_W*0.28]
@@ -706,8 +706,8 @@ with col2:
             # ── About this analysis (collapsed) ──────
             with st.expander("ℹ️ About this analysis", expanded=False):
                 st.markdown(
-                    "**Model Architecture:** YOLOv8m (tooth detection, mAP@50 0.548) "
-                    "+ ResNet50 (multi-label classification, F1 0.564)"
+                    "**Model Architecture:** YOLOv8m (tooth detection, mAP@50 0.419) "
+                    "+ ResNet50 (multi-label classification, F1 0.736)"
                 )
                 st.markdown(
                     "**Uncertainty Quantification:** Monte Carlo Dropout "

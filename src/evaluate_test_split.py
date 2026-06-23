@@ -24,7 +24,7 @@ from src.classifier.uncertainty import mc_uncertainty, is_uncertain
 
 # Paths
 TEST_IMGS_DIR = ROOT / "data" / "dentex" / "images" / "test"
-YOLO_WEIGHTS = ROOT / "src" / "detector" / "weights" / "oralguard_finetuned" / "weights" / "best.pt"
+YOLO_WEIGHTS = ROOT / "src" / "detector" / "weights" / "oralguard_v3" / "weights" / "best.pt"
 CLASSIFIER_WEIGHTS = ROOT / "src" / "classifier" / "checkpoints" / "best.pt"
 CSV_OUT = ROOT / "outputs" / "test_evaluation_results.csv"
 
